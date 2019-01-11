@@ -1,0 +1,65 @@
+λ(deployment : ./Deployment)  →
+
+-- Prelude
+    let Prelude =
+          https://raw.githubusercontent.com/dhall-lang/Prelude/v3.0.0/package.dhall
+
+in  let map = Prelude.`List`.map
+
+in  let Types = ./RawTypes
+
+in  let default = ./RawDefaults
+
+in  let mkEmptyVolume
+        : { name : Text } → Types.Volume
+        =   λ(vol : { name : Text })
+          →   default.volume { name = vol.name }
+            ⫽ { emptyDir = Some default.emptyVolume }
+
+in  let mkSecretVolumeSimple
+        : ./SingleSecretVolumeSimple → Types.Volume
+        =   λ(vol : ./SingleSecretVolumeSimple)
+          →   default.volume { name = vol.name }
+            ⫽ { secret = Some ( default.secretVolume
+                    ⫽ { secretName = Some vol.secretName
+                      }
+                  )
+              }
+
+in  let mkSecretVolume
+        : ./SingleSecretVolume → Types.Volume
+        =   λ(vol : ./SingleSecretVolume)
+          →   default.volume { name = vol.name }
+            ⫽ { secret = Some ( default.secretVolume
+                    ⫽ { secretName = Some vol.secretName
+                      , items      = Some [ default.keyPath { key = vol.key, path = vol.path } ]
+                      }
+                  )
+              }
+
+in  let mkPathVolume
+        : { name : Text, path : Text } → Types.Volume
+        =   λ(vol : { name : Text, path : Text })
+          →   default.volume { name = vol.name }
+            ⫽ { hostPath = Some (default.pathVolume { path = vol.path }) }
+
+in  let mkPersistentVolume : { name : Text, claimName : Text } → Types.Volume
+        =   λ(vol : { name : Text, claimName : Text })
+          →   default.volume { name = vol.name }
+            ⫽ { persistentVolumeClaim = Some ( { claimName = vol.claimName, readOnly = None Bool }) }
+
+in  let mkConfigMapVolume : { name : Text, configMap : Text } → Types.Volume
+        =   λ(vol : { name : Text, configMap : Text })
+          →   default.volume { name = vol.name }
+  ⫽ { configMap = Some ( default.configVolume ⫽  { name = Some vol.configMap }) }
+
+  in  let emptyVolumes = map { name : Text } Types.Volume mkEmptyVolume deployment.emptyVolumes
+  in  let pathVolumes = map { name : Text, path : Text } Types.Volume mkPathVolume deployment.pathVolumes
+  in  let persistentVolumes = map { name : Text, claimName : Text } Types.Volume mkPersistentVolume deployment.persistentVolumes
+  in  let configMapVolumes = map { name : Text, configMap : Text } Types.Volume mkConfigMapVolume deployment.configMapVolumes
+  in  let secretVolumes = map ./SingleSecretVolume Types.Volume mkSecretVolume deployment.secretVolumes
+  in  let secretSimpleVolumes = map ./SingleSecretVolumeSimple Types.Volume mkSecretVolumeSimple deployment.secretSimpleVolumes
+
+  in  let volumes = Some (emptyVolumes # secretVolumes # secretSimpleVolumes # pathVolumes # persistentVolumes # configMapVolumes)
+
+in volumes

@@ -1,0 +1,2 @@
+Some [ { ip = Some "192.168.0.23", hostnames = Some ["master.platform.daf.gov.it", "master"] },
+  { ip = Some "192.168.0.181", hostnames = Some ["master-2.platform.daf.gov.it", "master-2"] } ]

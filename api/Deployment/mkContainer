@@ -1,0 +1,117 @@
+    let Prelude =
+          https://raw.githubusercontent.com/dhall-lang/Prelude/v3.0.0/package.dhall
+
+in  let map = Prelude.`List`.map
+
+in  let kv = Prelude.JSON.keyText
+
+in  let Types = ./RawTypes
+
+in  let default = ./RawDefaults
+
+in  let KV = { mapKey : Text, mapValue : Text }
+
+in  let ListKV = List KV
+
+in  let mkProbe
+        : ./Probe → Optional Types.Probe
+        =   λ(probe : ./Probe)
+          → Some
+            (   default.probe
+              ⫽ { initialDelaySeconds =
+                    Some probe.initial
+                , periodSeconds =
+                    Some probe.period
+                , httpGet =
+                    Some
+                    (   default.httpGet { port = default.Int probe.port }
+                      ⫽ { path = Some probe.path }
+                    )
+                }
+            )
+
+let mkSimpleEnvVar
+        : KV → Types.EnvVar
+        =   λ(var : KV)
+          → default.envVar { name = var.mapKey } ⫽ { value = Some var.mapValue }
+
+in  let mkSecretEnvVar
+        : ./SecretEnvVar → Types.EnvVar
+        =   λ(var : ./SecretEnvVar)
+          → default.envVar { name = var.mapKey } ⫽
+           { valueFrom = Some ( default.envVarSource //
+                  { secretKeyRef = Some (default.secretKeyRef { key = var.secretKey } //
+                    { name = Some var.secretName })})}
+
+in  let mkContainer
+        : ./Container → Types.Container
+        =   λ ( container
+              : ./Container
+              )
+          →
+           let simpleEnvVars = map
+                    { mapKey : Text, mapValue : Text }
+                    Types.EnvVar
+                    mkSimpleEnvVar
+                    container.simpleEnvVars
+
+        in let secretEnvVars = map
+                    ./SecretEnvVar
+                    Types.EnvVar
+                    mkSecretEnvVar
+                    container.secretEnvVars
+
+        in let envVars = Some (simpleEnvVars # secretEnvVars)
+
+in  let mkMount
+        : ./Mount → Types.Mount
+        =   λ(mount : ./Mount)
+          →   default.mount { mountPath = mount.mountPath, name = mount.name }
+            ⫽ { readOnly = mount.readOnly, subPath = mount.subPath }
+
+     in   default.container
+              { name = container.name }
+            ⫽ { image =
+                  Some
+                  "${container.repositoryName}.${container.environmentName}.${container.domainName}/${container.imageName}:${container.imageTag}"
+              , imagePullPolicy =
+                  Some container.imagePullPolicy
+              , ports =
+                  Optional/fold
+                  Natural
+                  container.port
+                  (Optional (List Types.ContainerPort))
+                  (   λ(port : Natural)
+                    → Some [ default.containerPort { containerPort = port } ]
+                  )
+                  (None (List Types.ContainerPort))
+              , resources =
+                  Some
+                  { limits =
+                      Some [ kv "cpu" "${Natural/show container.maxCPU}m"
+                           , kv "memory" "${Natural/show container.memory}Mi"]
+                  , requests =
+                      Some [ kv "cpu" "${Natural/show container.minCPU}m" ]
+                  }
+              , command =
+                  container.command
+              , volumeMounts =
+                  Some (map ./Mount Types.Mount mkMount container.mounts)
+              , livenessProbe =
+                  Optional/fold
+                  ./Probe
+                  container.livenessProbe
+                  (Optional Types.Probe)
+                  mkProbe
+                  (None Types.Probe)
+              , readinessProbe =
+                  Optional/fold
+                  ./Probe
+                  container.readinessProbe
+                  (Optional Types.Probe)
+                  mkProbe
+                  (None Types.Probe)
+              , env = envVars
+              }
+
+in mkContainer

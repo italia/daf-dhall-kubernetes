@@ -12,6 +12,7 @@
 , Mount         = ../../types/io.k8s.api.core.v1.VolumeMount.dhall
 , Volume        = ../../types/io.k8s.api.core.v1.Volume.dhall
 , SecretVolume  = ../../types/io.k8s.api.core.v1.SecretVolumeSource.dhall
+, KeyToPath     = ../../types/io.k8s.api.core.v1.KeyToPath.dhall
 , EmptyVolume   = ../../types/io.k8s.api.core.v1.EmptyDirVolumeSource.dhall
 , PathVolume    = ../../types/io.k8s.api.core.v1.HostPathVolumeSource.dhall
 , IntOrString   = ../../types/io.k8s.apimachinery.pkg.util.intstr.IntOrString.dhall

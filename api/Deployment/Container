@@ -1,11 +1,16 @@
 { name            : Text
+, repositoryName  : Text
+, environmentName : Text
+, domainName      : Text
 , imageName       : Text
 , imageTag        : Text
 , imagePullPolicy : Text
 , minCPU          : Natural
 , maxCPU          : Natural
+, memory          : Natural
 , mounts          : List ./Mount
-, envVars         : List { mapKey : Text, mapValue : Text }
+, simpleEnvVars   : List { mapKey : Text, mapValue : Text }
+, secretEnvVars   : List ./SecretEnvVar
 , port            : Optional Natural
 , command         : Optional (List Text)
 , livenessProbe   : Optional ./Probe

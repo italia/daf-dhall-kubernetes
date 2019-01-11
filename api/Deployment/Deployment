@@ -1,10 +1,14 @@
-{ name                 : Text
-, replicas             : Natural
+{ name : Text
+, replicas : Natural
 , revisionHistoryLimit : Natural
-, maxSurge             : Natural
-, maxUnavailable       : Natural
-, containers           : List ./Container
-, emptyVolumes         : List { name : Text }
-, secretVolumes        : List { name : Text }
-, pathVolumes          : List { name : Text, path : Text }
+, maxSurge : Natural
+, maxUnavailable : Natural
+, hostAliases : Optional (List { hostnames : Optional (List Text), ip : Optional Text })
+, containers : List ./Container
+, emptyVolumes : List { name : Text }
+, secretVolumes : List ./SingleSecretVolume
+, secretSimpleVolumes : List ./SingleSecretVolumeSimple
+, configMapVolumes : List { name : Text, configMap : Text }
+, persistentVolumes : List { name : Text, claimName : Text }
+, pathVolumes : List { name : Text, path : Text }
 }

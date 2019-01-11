@@ -1,0 +1,106 @@
+apiVersion: apps/v1
+kind: Deployment
+spec:
+  revisionHistoryLimit: 20
+  selector:
+    matchLabels:
+      app: storage-manager
+  strategy:
+    rollingUpdate:
+      maxSurge: 5
+      maxUnavailable: 0
+    type: RollingUpdate
+  template:
+    spec:
+      containers:
+      - image: nexus.daf.teamdigitale.it/daf-storage-manager:1.0.4
+        imagePullPolicy: Always
+        env:
+        - value: -server -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -XX:+PerfDisableSharedMem
+            -XX:+ParallelRefProcEnabled -Xmx2g -Xms2g -XX:MaxPermSize=1024m
+          name: JAVA_OPTS
+        - name: FREEIPA_ADMIN_PWD
+          valueFrom:
+            secretKeyRef:
+              key: freeipa_admin_pwd
+              name: daf-secret
+        - name: PLAY_CRYPTO
+          valueFrom:
+            secretKeyRef:
+              key: play_crypto
+              name: daf-secret
+        - name: PAC4J_CRYPTO
+          valueFrom:
+            secretKeyRef:
+              key: pac4j_crypto
+              name: daf-secret
+        - name: LDAP_USER_PWD
+          valueFrom:
+            secretKeyRef:
+              key: ldap_user_pwd
+              name: daf-secret
+        - name: SSL_KEYSTORE_PWD
+          valueFrom:
+            secretKeyRef:
+              key: ssl_keystore_pwd
+              name: daf-secret
+        - name: LIVY_AUTH
+          valueFrom:
+            secretKeyRef:
+              key: livy_auth
+              name: daf-secret
+        volumeMounts:
+        - name: config-volume
+          mountPath: /opt/docker/conf/app
+        - subPath: storage-manager/conf/logback.xml
+          name: glusterfsvol
+          mountPath: /opt/docker/conf/logback.xml
+          readOnly: true
+        resources:
+          limits:
+            cpu: 500m
+          requests:
+            cpu: 10m
+        name: storage-manager
+        ports:
+        - containerPort: 9000
+      imagePullSecrets:
+      - name: regsecret
+      hostAliases:
+      - hostnames:
+        - master.platform.daf.gov.it
+        - master
+        ip: 192.168.0.23
+      - hostnames:
+        - master-2.platform.daf.gov.it
+        - master-2
+        ip: 192.168.0.181
+      volumes:
+      - secret:
+          items:
+          - path: keytab/daf.keytab
+            key: daf.keytab
+          secretName: keytab
+        name: daf-keytab
+      - secret:
+          items:
+          - path: cert/jssecacerts
+            key: jssecacerts
+          secretName: cert
+        name: ssl-cacerts
+      - name: krb5conf
+        hostPath:
+          path: /etc/krb5.conf
+      - persistentVolumeClaim:
+          claimName: gluster-claim
+        name: glusterfsvol
+      - configMap:
+          name: storage-manager-conf
+        name: config-volume
+    metadata:
+      name: storage-manager
+      labels:
+        app: storage-manager
+  replicas: 1
+metadata:
+  name: storage-manager

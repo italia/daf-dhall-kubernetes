@@ -1,4 +1,5 @@
 { mountPath : Text
 , name      : Text
+, subPath   : Optional Text
 , readOnly  : Optional Bool
 }

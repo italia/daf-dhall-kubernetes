@@ -1,4 +1,4 @@
 { key : (Text)
-, mode : (Optional (Natural))
+, mode : Optional (Natural)
 , path : (Text)
 }
