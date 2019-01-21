@@ -1,7 +1,7 @@
 pipeline {
     agent none
     stages {
-        stage('Deploy Dhall kubernetes Apis') {
+        stage('Deploy Dhall kubernetes Apis in dev ') {
             when { branch 'dev' }
             agent { label 'Master' }
                 steps {
@@ -10,7 +10,7 @@ pipeline {
                 slackSend (color: '#00FF00', message: "SUCCESSFUL: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}] deployed in '${env.DEPLOY_ENV}' https://cd.daf.teamdigitale.it/blue/organizations/jenkins/dhall-kubernetes/activity")
 }
         }
-        stage('Deploy Dhall kubernetes Apis') {
+        stage('Deploy Dhall kubernetes Apis in prod') {
             when { branch 'prod' }
             agent { label 'prod' }
                 steps {
